@@ -1,0 +1,71 @@
+.insight-panel {
+  background: rgba(4, 11, 29, 0.9);
+  border-radius: 36px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.insight-panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tag {
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #bae6fd;
+  padding: 6px 16px;
+  font-size: 0.75rem;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.chart-card {
+  grid-column: span 2;
+  min-width: 280px;
+}
+
+.chart-card,
+.insight-card {
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.6);
+  padding: 20px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.insight-card .title {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.insight-card h4 {
+  margin: 8px 0;
+}
+
+.insight-card .detail {
+  color: rgba(226, 232, 240, 0.75);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 960px) {
+  .chart-card {
+    grid-column: span 1;
+  }
+}

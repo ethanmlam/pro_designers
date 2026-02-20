@@ -1,0 +1,56 @@
+.integration-strip {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 32px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.integration-strip header .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.65rem;
+  color: rgba(226, 232, 240, 0.65);
+}
+
+.integration-strip header h3 {
+  margin: 4px 0 0;
+  font-size: 1.2rem;
+}
+
+.integration-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.integration-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.integration-card .icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.integration-card p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.integration-card span {
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.6);
+}
