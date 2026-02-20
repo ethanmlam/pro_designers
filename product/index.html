@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Explorer 2026</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #1a3d2e;
+            font-family: 'Press Start 2P', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        /* 2026 Badge - top right like in video */
+        #year-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #0a2a3a 0%, #1a4a5a 100%);
+            border: 3px solid #00e5cc;
+            border-radius: 8px;
+            padding: 10px 20px;
+            color: #00ffdd;
+            font-size: 28px;
+            text-shadow: 0 0 10px #00ffdd, 0 0 20px #00ffdd;
+            box-shadow: 0 0 20px rgba(0, 255, 221, 0.3);
+        }
+        
+        /* Timer badge - top left like in video */
+        #timer-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: #fff;
+            font-size: 12px;
+        }
+        
+        /* Zone info popup */
+        #zone-popup {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 20, 30, 0.95);
+            border: 3px solid #4a9;
+            border-radius: 12px;
+            padding: 20px 30px;
+            min-width: 400px;
+            max-width: 600px;
+            display: none;
+            color: #fff;
+        }
+        
+        #zone-popup.show { display: block; animation: popIn 0.2s ease; }
+        
+        @keyframes popIn {
+            from { opacity: 0; transform: translateX(-50%) scale(0.9); }
+            to { opacity: 1; transform: translateX(-50%) scale(1); }
+        }
+        
+        #zone-popup h2 {
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: #4f8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #zone-popup .items {
+            font-size: 9px;
+            line-height: 2.2;
+            color: #ccc;
+        }
+        
+        #zone-popup .item {
+            padding: 8px 0;
+            border-bottom: 1px solid #234;
+        }
+        
+        #zone-popup .item:last-child { border-bottom: none; }
+        #zone-popup .item-title { color: #fff; margin-bottom: 4px; }
+        #zone-popup .item-meta { color: #888; font-size: 8px; }
+        
+        /* Controls */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 8px;
+            text-align: right;
+            line-height: 1.8;
+        }
+        
+        /* Discovery animation */
+        #discovery {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 100;
+        }
+        
+        #discovery.show {
+            animation: discover 2s ease forwards;
+        }
+        
+        @keyframes discover {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        #discovery .icon { font-size: 64px; }
+        #discovery .name { font-size: 18px; color: #fff; margin-top: 10px; text-shadow: 0 0 20px currentColor; }
+        #discovery .sub { font-size: 10px; color: #8f8; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game"></canvas>
+        
+        <div id="timer-badge">00:00</div>
+        <div id="year-badge">2026</div>
+        
+        <div id="zone-popup">
+            <h2><span class="icon"></span><span class="name"></span></h2>
+            <div class="items"></div>
+        </div>
+        
+        <div id="controls">
+            WASD - MOVE<br>
+            SPACE - VIEW INFO<br>
+            ENTER - INTERACT
+        </div>
+        
+        <div id="discovery">
+            <div class="icon"></div>
+            <div class="name"></div>
+            <div class="sub">ZONE DISCOVERED</div>
+        </div>
+    </div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// ============ CONFIG ============
+const TILE = 16;
+const WORLD_W = 60;
+const WORLD_H = 40;
+const PLAYER_SPEED = 2.5;
+
+// ============ COLORS - Bright like the video ============
+const COLORS = {
+    grass1: '#4a8c4a',
+    grass2: '#5a9c5a', 
+    grass3: '#3a7c3a',
+    dirt: '#8b6914',
+    dirtDark: '#6b4a0a',
+    water: '#3a8bba',
+    path: '#c9a86c',
+    cliff: '#5a4a3a',
+    cliffDark: '#3a2a1a'
+};
+
+// ============ ZONES ============
+const ZONES = {
+    calendar: {
+        name: 'CALENDAR',
+        icon: '📅',
+        x: 12, y: 12,
+        color: '#e8c170',
+        items: [
+            { title: 'Hack on OpenClaw w/ Codex', meta: 'Today 4:00 PM - Hackathon!' },
+            { title: 'AI+ Whitepaper Reading', meta: 'Today 6:00 PM' },
+            { title: 'Mission Control Events', meta: 'Check calendar for more' }
+        ]
+    },
+    finances: {
+        name: 'FINANCES',
+        icon: '💰',
+        x: 45, y: 18,
+        color: '#f4d03f',
+        items: [
+            { title: 'FiveW LLC Balance', meta: '~$25k total • ~$15k after expenses' },
+            { title: 'Monthly Budget', meta: 'Tracking via Chase/Fidelity' },
+            { title: 'Investments', meta: 'Crypto portfolio monitoring' }
+        ]
+    },
+    tasks: {
+        name: 'TASKS',
+        icon: '✅',
+        x: 30, y: 8,
+        color: '#82e0aa',
+        items: [
+            { title: 'Hackathon Demo', meta: 'Life Explorer + Wan video' },
+            { title: 'FiveW Decision', meta: 'Wind down or pivot?' },
+            { title: 'YC Application', meta: 'Submitted, waiting for response' }
+        ]
+    },
+    social: {
+        name: 'SOCIAL',
+        icon: '💬',
+        x: 15, y: 28,
+        color: '#bb8fce',
+        items: [
+            { title: 'Twitter @ethanmlam', meta: '528 followers • Verified' },
+            { title: 'LinkedIn', meta: '1.4K+ connections' },
+            { title: 'Moltbook @Esobot', meta: 'Agent social network' }
+        ]
+    },
+    knowledge: {
+        name: 'KNOWLEDGE',
+        icon: '📚',
+        x: 48, y: 30,
+        color: '#85c1e9',
+        items: [
+            { title: 'Entity Store', meta: '60 entities • 331 observations' },
+            { title: 'Memory Files', meta: '45+ daily logs indexed' },
+            { title: 'Research', meta: 'Pump.fun, Polymarket analysis' }
+        ]
+    },
+    ideas: {
+        name: 'IDEAS LAB',
+        icon: '💡',
+        x: 30, y: 32,
+        color: '#f9e79f',
+        items: [
+            { title: 'Life Explorer', meta: 'This game UI!' },
+            { title: 'Agent Marketplace', meta: 'Skills trading platform' },
+            { title: 'Spatial Computing', meta: 'AR life dashboard concept' }
+        ]
+    }
+};
+
+// ============ GAME STATE ============
+let world = [];
+let player = { x: 30, y: 20 };
+let camera = { x: 0, y: 0 };
+let discovered = new Set();
+let particles = [];
+let sparkles = [];
+let trees = [];
+let startTime = Date.now();
+
+// ============ SPRITES (simple pixel art) ============
+function drawPlayer(x, y) {
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(x + 8, y + 28, 6, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Body (blue like in video)
+    ctx.fillStyle = '#3498db';
+    ctx.fillRect(x + 4, y + 12, 8, 12);
+    
+    // Head
+    ctx.fillStyle = '#5dade2';
+    ctx.beginPath();
+    ctx.arc(x + 8, y + 8, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Hat
+    ctx.fillStyle = '#2874a6';
+    ctx.fillRect(x + 2, y + 2, 12, 4);
+    ctx.fillRect(x + 4, y - 2, 8, 4);
+    
+    // Glowing orb in front
+    const glow = ctx.createRadialGradient(x + 8, y + 16, 0, x + 8, y + 16, 20);
+    glow.addColorStop(0, 'rgba(100, 255, 255, 0.8)');
+    glow.addColorStop(0.5, 'rgba(100, 255, 255, 0.3)');
+    glow.addColorStop(1, 'rgba(100, 255, 255, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(x + 8, y + 16, 20, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Orb center
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x + 8, y + 16, 4, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawTree(x, y) {
+    // Trunk
+    ctx.fillStyle = '#6b4423';
+    ctx.fillRect(x + 6, y + 16, 4, 12);
+    
+    // Foliage layers
+    ctx.fillStyle = '#2d5a2d';
+    ctx.beginPath();
+    ctx.moveTo(x + 8, y);
+    ctx.lineTo(x + 18, y + 12);
+    ctx.lineTo(x - 2, y + 12);
+    ctx.fill();
+    
+    ctx.fillStyle = '#3d7a3d';
+    ctx.beginPath();
+    ctx.moveTo(x + 8, y + 6);
+    ctx.lineTo(x + 20, y + 18);
+    ctx.lineTo(x - 4, y + 18);
+    ctx.fill();
+}
+
+function drawCalendarZone(x, y) {
+    // Glowing ground
+    const glow = ctx.createRadialGradient(x + 48, y + 48, 0, x + 48, y + 48, 80);
+    glow.addColorStop(0, 'rgba(232, 193, 112, 0.6)');
+    glow.addColorStop(1, 'rgba(232, 193, 112, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 32, y - 32, 160, 160);
+    
+    // Calendar icon
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x + 20, y + 20, 56, 56);
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(x + 20, y + 20, 56, 16);
+    ctx.fillStyle = '#333';
+    ctx.font = '24px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillText('2026', x + 48, y + 62);
+    
+    // Clock icons around it
+    for (let i = 0; i < 3; i++) {
+        const cx = x + 80 + i * 25;
+        const cy = y + 30 + Math.sin(Date.now() / 500 + i) * 5;
+        ctx.fillStyle = '#f4d03f';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx, cy - 5);
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + 4, cy);
+        ctx.stroke();
+    }
+}
+
+function drawFinanceZone(x, y) {
+    // Glowing ground
+    const glow = ctx.createRadialGradient(x + 48, y + 48, 0, x + 48, y + 48, 80);
+    glow.addColorStop(0, 'rgba(244, 208, 63, 0.6)');
+    glow.addColorStop(1, 'rgba(244, 208, 63, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 32, y - 32, 160, 160);
+    
+    // Bar chart
+    const bars = [30, 45, 35, 55, 70];
+    const colors = ['#e74c3c', '#f39c12', '#f1c40f', '#2ecc71', '#3498db'];
+    bars.forEach((h, i) => {
+        ctx.fillStyle = colors[i];
+        ctx.fillRect(x + i * 14, y + 80 - h, 12, h);
+    });
+    
+    // Arrow
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 75);
+    ctx.lineTo(x + 60, y + 35);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + 50, y + 30);
+    ctx.lineTo(x + 60, y + 35);
+    ctx.lineTo(x + 55, y + 45);
+    ctx.fill();
+    
+    // Gold coins
+    for (let i = 0; i < 4; i++) {
+        const cx = x + 75 + (i % 2) * 18;
+        const cy = y + 50 + Math.floor(i / 2) * 16 - i * 4;
+        ctx.fillStyle = '#f1c40f';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 14, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#d4ac0d';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 10, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f1c40f';
+        ctx.font = '10px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText('$', cx, cy + 4);
+    }
+}
+
+function drawGenericZone(zone, x, y) {
+    // Glowing ground
+    const glow = ctx.createRadialGradient(x + 48, y + 48, 0, x + 48, y + 48, 70);
+    glow.addColorStop(0, zone.color + '99');
+    glow.addColorStop(1, zone.color + '00');
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 20, y - 20, 140, 140);
+    
+    // Icon
+    ctx.font = '48px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(zone.icon, x + 48, y + 60);
+    
+    // Label
+    ctx.font = '8px "Press Start 2P"';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(zone.name, x + 48, y + 85);
+}
+
+// ============ WORLD GENERATION ============
+function generateWorld() {
+    // Create terrain
+    for (let y = 0; y < WORLD_H; y++) {
+        world[y] = [];
+        for (let x = 0; x < WORLD_W; x++) {
+            // Simplex-like noise for varied terrain
+            const n1 = Math.sin(x * 0.3) * Math.cos(y * 0.3);
+            const n2 = Math.sin(x * 0.1 + 5) * Math.cos(y * 0.15 + 3);
+            const noise = (n1 + n2) / 2;
+            
+            let tile = 'grass';
+            if (noise > 0.5) tile = 'grass2';
+            else if (noise < -0.3) tile = 'dirt';
+            
+            // Cliffs on edges
+            if (y < 3 || y > WORLD_H - 4) tile = 'cliff';
+            if (x < 3 || x > WORLD_W - 4) tile = 'cliff';
+            
+            world[y][x] = { type: tile, zone: null };
+        }
+    }
+    
+    // Place zones
+    for (const [key, zone] of Object.entries(ZONES)) {
+        for (let dy = -3; dy <= 3; dy++) {
+            for (let dx = -3; dx <= 3; dx++) {
+                const tx = zone.x + dx;
+                const ty = zone.y + dy;
+                if (tx >= 0 && tx < WORLD_W && ty >= 0 && ty < WORLD_H) {
+                    if (Math.sqrt(dx*dx + dy*dy) <= 3) {
+                        world[ty][tx].zone = key;
+                        world[ty][tx].type = 'zone';
+                    }
+                }
+            }
+        }
+    }
+    
+    // Add trees
+    for (let i = 0; i < 40; i++) {
+        const tx = Math.floor(Math.random() * (WORLD_W - 6)) + 3;
+        const ty = Math.floor(Math.random() * (WORLD_H - 6)) + 3;
+        if (!world[ty][tx].zone && world[ty][tx].type !== 'cliff') {
+            trees.push({ x: tx, y: ty });
+        }
+    }
+}
+
+// ============ RENDERING ============
+function render() {
+    // Resize canvas
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Update camera
+    camera.x = player.x * TILE - canvas.width / 2;
+    camera.y = player.y * TILE - canvas.height / 2;
+    
+    // Sky gradient background
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    skyGrad.addColorStop(0, '#87CEEB');
+    skyGrad.addColorStop(1, '#e0f7fa');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw terrain
+    const startX = Math.floor(camera.x / TILE) - 1;
+    const startY = Math.floor(camera.y / TILE) - 1;
+    const endX = startX + Math.ceil(canvas.width / TILE) + 3;
+    const endY = startY + Math.ceil(canvas.height / TILE) + 3;
+    
+    for (let y = startY; y < endY; y++) {
+        for (let x = startX; x < endX; x++) {
+            if (x < 0 || x >= WORLD_W || y < 0 || y >= WORLD_H) continue;
+            
+            const tile = world[y][x];
+            const sx = x * TILE - camera.x;
+            const sy = y * TILE - camera.y;
+            
+            // Tile colors
+            switch (tile.type) {
+                case 'grass':
+                    ctx.fillStyle = ((x + y) % 2 === 0) ? COLORS.grass1 : COLORS.grass2;
+                    break;
+                case 'grass2':
+                    ctx.fillStyle = COLORS.grass3;
+                    break;
+                case 'dirt':
+                    ctx.fillStyle = ((x + y) % 2 === 0) ? COLORS.dirt : COLORS.dirtDark;
+                    break;
+                case 'cliff':
+                    ctx.fillStyle = ((x + y) % 2 === 0) ? COLORS.cliff : COLORS.cliffDark;
+                    break;
+                case 'zone':
+                    ctx.fillStyle = COLORS.grass1;
+                    break;
+                default:
+                    ctx.fillStyle = COLORS.grass1;
+            }
+            
+            ctx.fillRect(sx, sy, TILE + 1, TILE + 1);
+            
+            // Add grass tufts randomly
+            if (tile.type.startsWith('grass') && Math.random() < 0.02) {
+                ctx.fillStyle = '#2d5a2d';
+                ctx.fillRect(sx + 6, sy + 10, 2, 4);
+                ctx.fillRect(sx + 10, sy + 8, 2, 6);
+            }
+        }
+    }
+    
+    // Draw zone graphics
+    for (const [key, zone] of Object.entries(ZONES)) {
+        const zx = zone.x * TILE - camera.x;
+        const zy = zone.y * TILE - camera.y;
+        
+        if (zx > -100 && zx < canvas.width + 100 && zy > -100 && zy < canvas.height + 100) {
+            if (key === 'calendar') {
+                drawCalendarZone(zx - 40, zy - 40);
+            } else if (key === 'finances') {
+                drawFinanceZone(zx - 40, zy - 40);
+            } else {
+                drawGenericZone(zone, zx - 40, zy - 40);
+            }
+        }
+    }
+    
+    // Draw trees
+    trees.forEach(tree => {
+        const tx = tree.x * TILE - camera.x;
+        const ty = tree.y * TILE - camera.y;
+        if (tx > -20 && tx < canvas.width + 20 && ty > -30 && ty < canvas.height + 30) {
+            drawTree(tx, ty - 16);
+        }
+    });
+    
+    // Draw sparkles
+    sparkles = sparkles.filter(s => {
+        s.life--;
+        s.y -= 0.5;
+        if (s.life > 0) {
+            ctx.globalAlpha = s.life / 30;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(s.x - camera.x, s.y - camera.y, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            return true;
+        }
+        return false;
+    });
+    
+    // Add new sparkles near zones
+    if (Math.random() < 0.1) {
+        const zoneKeys = Object.keys(ZONES);
+        const zone = ZONES[zoneKeys[Math.floor(Math.random() * zoneKeys.length)]];
+        sparkles.push({
+            x: (zone.x + (Math.random() - 0.5) * 6) * TILE,
+            y: (zone.y + (Math.random() - 0.5) * 6) * TILE,
+            life: 30
+        });
+    }
+    
+    // Draw player
+    const px = player.x * TILE - camera.x;
+    const py = player.y * TILE - camera.y;
+    drawPlayer(px - 8, py - 24);
+    
+    // Draw discovery particles
+    particles = particles.filter(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.1;
+        p.life--;
+        if (p.life > 0) {
+            ctx.globalAlpha = p.life / 60;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            return true;
+        }
+        return false;
+    });
+    
+    // Update timer
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const secs = String(elapsed % 60).padStart(2, '0');
+    document.getElementById('timer-badge').textContent = `${mins}:${secs}`;
+    
+    requestAnimationFrame(render);
+}
+
+// ============ ZONE DETECTION ============
+function getCurrentZone() {
+    const px = Math.floor(player.x);
+    const py = Math.floor(player.y);
+    if (px >= 0 && px < WORLD_W && py >= 0 && py < WORLD_H) {
+        return world[py][px].zone;
+    }
+    return null;
+}
+
+function checkZoneDiscovery() {
+    const zone = getCurrentZone();
+    if (zone && !discovered.has(zone)) {
+        discovered.add(zone);
+        const z = ZONES[zone];
+        
+        // Show discovery popup
+        const el = document.getElementById('discovery');
+        el.querySelector('.icon').textContent = z.icon;
+        el.querySelector('.name').textContent = z.name;
+        el.querySelector('.name').style.color = z.color;
+        el.classList.remove('show');
+        void el.offsetWidth;
+        el.classList.add('show');
+        
+        // Particles
+        for (let i = 0; i < 40; i++) {
+            particles.push({
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() - 0.5) * 12,
+                life: 60,
+                color: z.color
+            });
+        }
+    }
+}
+
+function showZoneInfo() {
+    const zoneKey = getCurrentZone();
+    if (!zoneKey) {
+        document.getElementById('zone-popup').classList.remove('show');
+        return;
+    }
+    
+    const zone = ZONES[zoneKey];
+    const popup = document.getElementById('zone-popup');
+    popup.querySelector('.icon').textContent = zone.icon;
+    popup.querySelector('.name').textContent = zone.name;
+    
+    let html = '';
+    zone.items.forEach(item => {
+        html += `<div class="item"><div class="item-title">${item.title}</div><div class="item-meta">${item.meta}</div></div>`;
+    });
+    popup.querySelector('.items').innerHTML = html;
+    popup.classList.add('show');
+}
+
+// ============ INPUT ============
+const keys = {};
+
+document.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === ' ') {
+        e.preventDefault();
+        showZoneInfo();
+    }
+});
+
+document.addEventListener('keyup', e => {
+    keys[e.key.toLowerCase()] = false;
+    if (e.key === ' ') {
+        document.getElementById('zone-popup').classList.remove('show');
+    }
+});
+
+function gameLoop() {
+    let dx = 0, dy = 0;
+    
+    if (keys['w'] || keys['arrowup']) dy -= PLAYER_SPEED;
+    if (keys['s'] || keys['arrowdown']) dy += PLAYER_SPEED;
+    if (keys['a'] || keys['arrowleft']) dx -= PLAYER_SPEED;
+    if (keys['d'] || keys['arrowright']) dx += PLAYER_SPEED;
+    
+    // Normalize diagonal
+    if (dx && dy) { dx *= 0.707; dy *= 0.707; }
+    
+    // Move with bounds
+    const newX = player.x + dx / TILE;
+    const newY = player.y + dy / TILE;
+    
+    if (newX >= 2 && newX < WORLD_W - 2) player.x = newX;
+    if (newY >= 2 && newY < WORLD_H - 2) player.y = newY;
+    
+    // Check zone discovery
+    if (dx || dy) checkZoneDiscovery();
+    
+    setTimeout(gameLoop, 16);
+}
+
+// ============ INIT ============
+generateWorld();
+gameLoop();
+render();
+
+console.log('🎮 Life Explorer 2026 - Ready!');
+console.log('Use WASD/Arrows to move, SPACE to view zone info');
+</script>
+</body>
+</html>
