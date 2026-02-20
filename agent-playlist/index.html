@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Playlist</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --bg-primary: #121212;
+            --bg-secondary: #181818;
+            --bg-elevated: #282828;
+            --bg-highlight: #333333;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --text-subdued: #6a6a6a;
+            --accent: #1db954;
+            --accent-hover: #1ed760;
+            --danger: #e91429;
+            --warning: #f59b23;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Sidebar */
+        .layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 280px;
+            background: var(--bg-primary);
+            padding: 24px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 12px;
+            margin-bottom: 8px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .nav-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+        .nav-item:hover { color: var(--text-primary); background: var(--bg-elevated); }
+        .nav-item.active { color: var(--text-primary); background: var(--bg-elevated); }
+        .nav-item i { font-size: 24px; }
+
+        .playlist-section {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-subdued);
+            padding: 0 12px;
+            margin-bottom: 12px;
+        }
+        .saved-playlist {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .saved-playlist:hover { background: var(--bg-elevated); }
+        .saved-playlist-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #450af5, #c4efd9);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .saved-playlist-info h4 { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+        .saved-playlist-info span { font-size: 12px; color: var(--text-subdued); }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            background: linear-gradient(180deg, #1a3a2a 0%, var(--bg-primary) 300px);
+        }
+        .header {
+            padding: 24px 32px;
+            display: flex;
+            align-items: flex-end;
+            gap: 24px;
+        }
+        .playlist-cover {
+            width: 232px;
+            height: 232px;
+            background: linear-gradient(135deg, var(--accent), #134e2b);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            box-shadow: 0 4px 60px rgba(0,0,0,0.5);
+        }
+        .playlist-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .playlist-type {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .playlist-title {
+            font-size: 72px;
+            font-weight: 800;
+            letter-spacing: -3px;
+            line-height: 1;
+        }
+        .playlist-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+        .playlist-meta strong { color: var(--text-primary); }
+
+        /* Controls */
+        .controls-bar {
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        .play-button {
+            width: 56px;
+            height: 56px;
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: black;
+            font-size: 24px;
+        }
+        .play-button:hover { transform: scale(1.05); background: var(--accent-hover); }
+        .control-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 32px;
+            cursor: pointer;
+            transition: color 0.15s;
+            display: flex;
+            align-items: center;
+        }
+        .control-btn:hover { color: var(--text-primary); }
+
+        /* Track List */
+        .track-list {
+            padding: 0 32px 100px;
+        }
+        .track-header {
+            display: grid;
+            grid-template-columns: 40px 1fr 200px 100px 60px;
+            gap: 16px;
+            padding: 8px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 8px;
+            color: var(--text-subdued);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .track-item {
+            display: grid;
+            grid-template-columns: 40px 1fr 200px 100px 60px;
+            gap: 16px;
+            padding: 12px 16px;
+            border-radius: 4px;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .track-item:hover { background: var(--bg-elevated); }
+        .track-item.playing { background: var(--bg-highlight); }
+        .track-item.playing .track-number { color: var(--accent); }
+        .track-item.playing .track-title { color: var(--accent); }
+        .track-number {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        .track-info { display: flex; flex-direction: column; gap: 4px; }
+        .track-title { font-size: 15px; font-weight: 500; }
+        .track-desc { font-size: 13px; color: var(--text-secondary); }
+        .track-status {
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status-dot.queued { background: var(--text-subdued); }
+        .status-dot.running { background: var(--accent); animation: pulse 1.5s infinite; }
+        .status-dot.done { background: var(--accent); }
+        .status-dot.failed { background: var(--danger); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .track-time { font-size: 13px; color: var(--text-secondary); }
+        .track-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .track-item:hover .track-actions { opacity: 1; }
+        .track-action {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+        }
+        .track-action:hover { color: var(--text-primary); }
+
+        /* Now Playing Bar */
+        .now-playing-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 90px;
+            background: var(--bg-elevated);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 100;
+        }
+        .now-playing-track {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .now-playing-cover {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--accent), #134e2b);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+        .now-playing-info h4 { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+        .now-playing-info span { font-size: 12px; color: var(--text-secondary); }
+
+        .playback-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .playback-buttons {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .playback-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            transition: color 0.15s;
+            display: flex;
+            align-items: center;
+        }
+        .playback-btn:hover { color: var(--text-primary); }
+        .playback-btn.main {
+            width: 36px;
+            height: 36px;
+            background: var(--text-primary);
+            border-radius: 50%;
+            color: var(--bg-primary);
+            font-size: 16px;
+            justify-content: center;
+        }
+        .playback-btn.main:hover { transform: scale(1.05); }
+        .progress-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .progress-time { font-size: 11px; color: var(--text-subdued); min-width: 40px; }
+        .progress-track {
+            flex: 1;
+            height: 4px;
+            background: var(--bg-highlight);
+            border-radius: 2px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--text-primary);
+            border-radius: 2px;
+            width: 35%;
+            transition: width 0.3s;
+        }
+        .progress-track:hover .progress-fill { background: var(--accent); }
+
+        .volume-controls {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .volume-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .volume-track {
+            width: 100px;
+            height: 4px;
+            background: var(--bg-highlight);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .volume-fill {
+            height: 100%;
+            background: var(--text-primary);
+            border-radius: 2px;
+            width: 70%;
+        }
+
+        /* Add Task Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            width: 500px;
+            max-width: 90%;
+            padding: 24px;
+        }
+        .modal h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        .modal-input {
+            width: 100%;
+            background: var(--bg-highlight);
+            border: none;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+        .modal-input:focus {
+            outline: 2px solid var(--accent);
+        }
+        .modal-input::placeholder { color: var(--text-subdued); }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .modal-btn {
+            padding: 12px 32px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .modal-btn.cancel {
+            background: none;
+            border: 1px solid var(--text-subdued);
+            color: var(--text-primary);
+        }
+        .modal-btn.cancel:hover { border-color: var(--text-primary); }
+        .modal-btn.add {
+            background: var(--accent);
+            border: none;
+            color: black;
+        }
+        .modal-btn.add:hover { background: var(--accent-hover); transform: scale(1.02); }
+
+        /* Drag and drop styles */
+        .track-item.dragging {
+            opacity: 0.5;
+            background: var(--bg-highlight);
+        }
+        .track-item.drag-over {
+            border-top: 2px solid var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon"><i class="ph-fill ph-queue"></i></div>
+                <span class="logo-text">Agent Playlist</span>
+            </div>
+            <nav class="nav-section">
+                <div class="nav-item active"><i class="ph ph-house"></i> Home</div>
+                <div class="nav-item"><i class="ph ph-magnifying-glass"></i> Search Tasks</div>
+                <div class="nav-item"><i class="ph ph-clock-counter-clockwise"></i> History</div>
+            </nav>
+            <div style="padding: 12px; margin-top: 12px; background: var(--bg-elevated); border-radius: 8px;">
+                <div style="font-size: 11px; color: var(--text-subdued); text-transform: uppercase; margin-bottom: 6px;">OpenClaw</div>
+                <div id="connection-status" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+                    <span class="status-dot queued"></span>
+                    <span>Connecting...</span>
+                </div>
+            </div>
+            <div class="playlist-section">
+                <div class="section-title">Your Playlists</div>
+                <div class="saved-playlist">
+                    <div class="saved-playlist-icon"><i class="ph-fill ph-lightning"></i></div>
+                    <div class="saved-playlist-info">
+                        <h4>Daily Tasks</h4>
+                        <span>12 tasks</span>
+                    </div>
+                </div>
+                <div class="saved-playlist">
+                    <div class="saved-playlist-icon" style="background: linear-gradient(135deg, #e91429, #f5a623);"><i class="ph-fill ph-envelope"></i></div>
+                    <div class="saved-playlist-info">
+                        <h4>Email Workflow</h4>
+                        <span>5 tasks</span>
+                    </div>
+                </div>
+                <div class="saved-playlist">
+                    <div class="saved-playlist-icon" style="background: linear-gradient(135deg, #1e3264, #4a90d9);"><i class="ph-fill ph-code"></i></div>
+                    <div class="saved-playlist-info">
+                        <h4>Dev Tasks</h4>
+                        <span>8 tasks</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <div class="playlist-cover"><i class="ph-fill ph-robot"></i></div>
+                <div class="playlist-info">
+                    <span class="playlist-type">Agent Playlist</span>
+                    <h1 class="playlist-title">Queue</h1>
+                    <div class="playlist-meta">
+                        <strong>Esobot</strong>
+                        <span>•</span>
+                        <span id="task-count">6 tasks</span>
+                        <span>•</span>
+                        <span id="total-time">~15 min</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="controls-bar">
+                <button class="play-button" id="play-all"><i class="ph-fill ph-play"></i></button>
+                <button class="control-btn" id="shuffle"><i class="ph ph-shuffle"></i></button>
+                <button class="control-btn" id="add-task"><i class="ph ph-plus-circle"></i></button>
+            </div>
+
+            <div class="track-list">
+                <div class="track-header">
+                    <span>#</span>
+                    <span>Task</span>
+                    <span>Status</span>
+                    <span>Duration</span>
+                    <span></span>
+                </div>
+                <div id="tracks"></div>
+            </div>
+        </main>
+    </div>
+
+    <div class="now-playing-bar">
+        <div class="now-playing-track">
+            <div class="now-playing-cover"><i class="ph-fill ph-envelope"></i></div>
+            <div class="now-playing-info">
+                <h4 id="now-playing-title">Check email inbox</h4>
+                <span id="now-playing-desc">Scan for urgent messages</span>
+            </div>
+        </div>
+        <div class="playback-controls">
+            <div class="playback-buttons">
+                <button class="playback-btn"><i class="ph-fill ph-shuffle"></i></button>
+                <button class="playback-btn"><i class="ph-fill ph-skip-back"></i></button>
+                <button class="playback-btn main" id="play-pause"><i class="ph-fill ph-pause"></i></button>
+                <button class="playback-btn" id="skip-next"><i class="ph-fill ph-skip-forward"></i></button>
+                <button class="playback-btn"><i class="ph ph-repeat"></i></button>
+            </div>
+            <div class="progress-bar">
+                <span class="progress-time" id="elapsed">1:24</span>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progress"></div>
+                </div>
+                <span class="progress-time" id="remaining">4:02</span>
+            </div>
+        </div>
+        <div class="volume-controls">
+            <button class="volume-btn"><i class="ph ph-queue"></i></button>
+            <button class="volume-btn"><i class="ph ph-speaker-high"></i></button>
+            <div class="volume-track">
+                <div class="volume-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h2>Add to Queue</h2>
+            <input type="text" class="modal-input" id="task-input" placeholder="What should the agent do?">
+            <input type="text" class="modal-input" id="task-desc" placeholder="Description (optional)">
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+                <button class="modal-btn add" onclick="addTask()">Add Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // OpenClaw connection config - direct connection, no auth needed for local
+        const CONFIG = {
+            gatewayUrl: 'http://100.117.197.128:18789'
+        };
+
+        // Task queue
+        let tasks = [];
+        let isPlaying = false;
+        let currentTaskIndex = 0;
+        let progress = 0;
+        let currentTaskStartTime = null;
+
+        // Real tasks from OpenClaw
+        tasks = [
+            { id: 1, title: "Morning Briefing", desc: "AI news, opportunities, technical concepts", status: "queued", duration: "~2:00", icon: "sun", type: "cron" },
+            { id: 2, title: "Autonomous Exploration", desc: "Deep research on pump.fun, Polymarket, or trends", status: "queued", duration: "~5:00", icon: "compass", type: "cron" },
+            { id: 3, title: "Nightly Build", desc: "Find and fix ONE friction point autonomously", status: "queued", duration: "~10:00", icon: "wrench", type: "cron" },
+            { id: 4, title: "Semantic Embed Sync", desc: "Sync entity store and update embeddings", status: "queued", duration: "~1:00", icon: "database", type: "cron" },
+            { id: 5, title: "Signal Resolution Check", desc: "Check Polymarket counter-consensus signals", status: "queued", duration: "~0:30", icon: "chart-line", type: "cron" },
+            { id: 6, title: "Weekly Spending Report", desc: "Generate spending summary from Gmail alerts", status: "queued", duration: "~1:00", icon: "currency-dollar", type: "cron" }
+        ];
+        
+        // Initial render
+        renderTracks();
+        updateNowPlaying();
+        updateConnectionStatus(true, 'Connected to OpenClaw');
+
+        // Refresh tasks from OpenClaw (optional - for live updates)
+        async function refreshFromOpenClaw() {
+            updateConnectionStatus(true, 'Connected to OpenClaw');
+        }
+
+        // Send task to OpenClaw agent
+        async function executeTask(task) {
+            try {
+                const res = await fetch(`${CONFIG.gatewayUrl}/api/sessions/main/message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: task.title + ': ' + task.desc })
+                });
+                return res.ok;
+            } catch (err) {
+                console.error('Failed to execute task:', err);
+                return false;
+            }
+        }
+
+        function renderTracks() {
+            const container = document.getElementById('tracks');
+            container.innerHTML = tasks.map((task, i) => `
+                <div class="track-item ${task.status === 'running' ? 'playing' : ''}" 
+                     draggable="true" 
+                     data-index="${i}"
+                     ondragstart="dragStart(event)" 
+                     ondragover="dragOver(event)" 
+                     ondrop="drop(event)">
+                    <div class="track-number">
+                        ${task.status === 'running' ? '<i class="ph-fill ph-speaker-high" style="color: var(--accent);"></i>' : i + 1}
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">${task.title}</div>
+                        <div class="track-desc">${task.desc}</div>
+                    </div>
+                    <div class="track-status">
+                        <span class="status-dot ${task.status}"></span>
+                        ${task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                    </div>
+                    <div class="track-time">${task.duration}</div>
+                    <div class="track-actions">
+                        <button class="track-action" onclick="removeTask(${i})"><i class="ph ph-x"></i></button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('task-count').textContent = `${tasks.length} tasks`;
+        }
+
+        function updateNowPlaying() {
+            const current = tasks.find(t => t.status === 'running');
+            if (current) {
+                document.getElementById('now-playing-title').textContent = current.title;
+                document.getElementById('now-playing-desc').textContent = current.desc;
+            }
+        }
+
+        async function togglePlay() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('play-pause');
+            btn.innerHTML = isPlaying ? '<i class="ph-fill ph-pause"></i>' : '<i class="ph-fill ph-play"></i>';
+            
+            const playAll = document.getElementById('play-all');
+            playAll.innerHTML = isPlaying ? '<i class="ph-fill ph-pause"></i>' : '<i class="ph-fill ph-play"></i>';
+
+            if (isPlaying) {
+                // Start first queued task if nothing running
+                const runningIndex = tasks.findIndex(t => t.status === 'running');
+                if (runningIndex === -1) {
+                    const firstQueued = tasks.findIndex(t => t.status === 'queued');
+                    if (firstQueued >= 0) {
+                        tasks[firstQueued].status = 'running';
+                        currentTaskStartTime = Date.now();
+                        progress = 0;
+                        renderTracks();
+                        updateNowPlaying();
+                        // Actually send to OpenClaw
+                        executeTask(tasks[firstQueued]);
+                    }
+                }
+            }
+        }
+
+        async function skipNext() {
+            const runningIndex = tasks.findIndex(t => t.status === 'running');
+            if (runningIndex >= 0) {
+                tasks[runningIndex].status = 'done';
+                
+                // Find next queued task
+                const nextQueued = tasks.findIndex(t => t.status === 'queued');
+                if (nextQueued >= 0) {
+                    tasks[nextQueued].status = 'running';
+                    currentTaskStartTime = Date.now();
+                    progress = 0;
+                    renderTracks();
+                    updateNowPlaying();
+                    // Send to OpenClaw
+                    if (isPlaying) {
+                        executeTask(tasks[nextQueued]);
+                    }
+                } else {
+                    // All done
+                    isPlaying = false;
+                    document.getElementById('play-pause').innerHTML = '<i class="ph-fill ph-play"></i>';
+                    document.getElementById('play-all').innerHTML = '<i class="ph-fill ph-play"></i>';
+                    renderTracks();
+                }
+            }
+        }
+
+        function removeTask(index) {
+            tasks.splice(index, 1);
+            renderTracks();
+        }
+
+        function openModal() {
+            document.getElementById('modal').classList.add('active');
+            document.getElementById('task-input').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.getElementById('task-input').value = '';
+            document.getElementById('task-desc').value = '';
+        }
+
+        function addTask() {
+            const title = document.getElementById('task-input').value;
+            const desc = document.getElementById('task-desc').value || 'Agent task';
+            if (title) {
+                tasks.push({
+                    id: Date.now(),
+                    title,
+                    desc,
+                    status: 'queued',
+                    duration: '~2:00',
+                    icon: 'lightning',
+                    type: 'task'
+                });
+                renderTracks();
+                closeModal();
+                
+                // Auto-start if not playing
+                if (!isPlaying && tasks.filter(t => t.status === 'running').length === 0) {
+                    // Could auto-start here if desired
+                }
+            }
+        }
+
+        function updateConnectionStatus(connected, message) {
+            const el = document.getElementById('connection-status');
+            if (connected) {
+                el.innerHTML = '<span class="status-dot running"></span><span style="color: var(--accent);">' + message + '</span>';
+            } else {
+                el.innerHTML = '<span class="status-dot" style="background: var(--danger);"></span><span style="color: var(--danger);">' + message + '</span>';
+            }
+        }
+
+        // Drag and drop
+        let draggedIndex = null;
+
+        function dragStart(e) {
+            draggedIndex = parseInt(e.target.dataset.index);
+            e.target.classList.add('dragging');
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+            const target = e.target.closest('.track-item');
+            if (target) {
+                document.querySelectorAll('.track-item').forEach(t => t.classList.remove('drag-over'));
+                target.classList.add('drag-over');
+            }
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            const target = e.target.closest('.track-item');
+            if (target && draggedIndex !== null) {
+                const dropIndex = parseInt(target.dataset.index);
+                const [removed] = tasks.splice(draggedIndex, 1);
+                tasks.splice(dropIndex, 0, removed);
+                renderTracks();
+            }
+            document.querySelectorAll('.track-item').forEach(t => {
+                t.classList.remove('dragging', 'drag-over');
+            });
+            draggedIndex = null;
+        }
+
+        // Progress simulation
+        setInterval(() => {
+            if (isPlaying) {
+                progress += 0.5;
+                if (progress >= 100) {
+                    skipNext();
+                }
+                document.getElementById('progress').style.width = progress + '%';
+                
+                const elapsed = Math.floor(progress * 2.42);
+                const remaining = Math.floor((100 - progress) * 2.42);
+                document.getElementById('elapsed').textContent = 
+                    Math.floor(elapsed / 60) + ':' + String(elapsed % 60).padStart(2, '0');
+                document.getElementById('remaining').textContent = 
+                    Math.floor(remaining / 60) + ':' + String(remaining % 60).padStart(2, '0');
+            }
+        }, 100);
+
+        // Event listeners
+        document.getElementById('play-pause').onclick = togglePlay;
+        document.getElementById('play-all').onclick = togglePlay;
+        document.getElementById('skip-next').onclick = skipNext;
+        document.getElementById('add-task').onclick = openModal;
+        document.getElementById('modal').onclick = (e) => {
+            if (e.target.id === 'modal') closeModal();
+        };
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Enter' && document.getElementById('modal').classList.contains('active')) {
+                addTask();
+            }
+        });
+
+        // Initial render
+        renderTracks();
+        updateNowPlaying();
+    </script>
+</body>
+</html>

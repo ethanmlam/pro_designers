@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Where Should I Go?</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --card-bg: #13131a;
+            --border: #2a2a3a;
+            --text: #ffffff;
+            --text-dim: #8888aa;
+            --accent: #ff6b6b;
+            --accent-2: #4ecdc4;
+            --accent-3: #ffe66d;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(102, 126, 234, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(240, 147, 251, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(78, 205, 196, 0.1) 0%, transparent 50%);
+            z-index: -1;
+            animation: bgPulse 10s ease-in-out infinite;
+        }
+        @keyframes bgPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 60px 20px 40px;
+        }
+        .header h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #fff 0%, #4ecdc4 50%, #ff6b6b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p {
+            font-size: 18px;
+            color: var(--text-dim);
+        }
+
+        /* Signals Bar */
+        .signals-bar {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .signal {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+        }
+        .signal i { font-size: 18px; }
+        .signal.good { border-color: #4ecdc4; color: #4ecdc4; }
+        .signal.warn { border-color: #ffe66d; color: #ffe66d; }
+        .signal.hot { border-color: #ff6b6b; color: #ff6b6b; }
+
+        /* Main Card Stack */
+        .card-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 500px;
+            padding: 20px;
+            perspective: 1000px;
+        }
+        .card-stack {
+            position: relative;
+            width: 380px;
+            height: 500px;
+        }
+        .destination-card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: var(--card-bg);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            cursor: grab;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid var(--border);
+        }
+        .destination-card:hover {
+            box-shadow: 0 30px 60px -15px rgba(0,0,0,0.6);
+        }
+        .destination-card.dragging {
+            cursor: grabbing;
+            transition: none;
+        }
+        .card-image {
+            height: 55%;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .card-image::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: linear-gradient(transparent, var(--card-bg));
+        }
+        .card-badge {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .badge-spontaneous { background: var(--gradient-2); color: white; }
+        .badge-deal { background: var(--gradient-4); color: #0a0a0f; }
+        .badge-trending { background: var(--gradient-5); color: #0a0a0f; }
+        .badge-weekend { background: var(--gradient-3); color: #0a0a0f; }
+
+        .card-content {
+            padding: 20px 24px;
+        }
+        .card-destination {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .card-country {
+            font-size: 15px;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+        }
+        .card-reason {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+        }
+        .card-stats {
+            display: flex;
+            gap: 20px;
+        }
+        .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 30px;
+        }
+        .action-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+        .btn-skip {
+            background: var(--card-bg);
+            border: 2px solid var(--accent);
+            color: var(--accent);
+        }
+        .btn-skip:hover { background: var(--accent); color: white; }
+        .btn-save {
+            background: var(--card-bg);
+            border: 2px solid var(--accent-3);
+            color: var(--accent-3);
+        }
+        .btn-save:hover { background: var(--accent-3); color: #0a0a0f; }
+        .btn-go {
+            background: var(--accent-2);
+            color: #0a0a0f;
+            width: 80px;
+            height: 80px;
+            font-size: 36px;
+        }
+        .btn-go:hover { background: #5fe0d6; transform: scale(1.15); }
+
+        /* Spin Button */
+        .spin-section {
+            text-align: center;
+            padding: 20px;
+        }
+        .spin-btn {
+            background: var(--gradient-1);
+            border: none;
+            padding: 16px 48px;
+            border-radius: 100px;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+        }
+        .spin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(102, 126, 234, 0.5);
+        }
+        .spin-btn i {
+            transition: transform 0.5s;
+        }
+        .spin-btn:hover i {
+            transform: rotate(180deg);
+        }
+
+        /* Saved List */
+        .saved-section {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .saved-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .saved-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .saved-count {
+            background: var(--card-bg);
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        .saved-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .saved-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px 16px;
+            transition: all 0.2s;
+        }
+        .saved-item:hover {
+            border-color: var(--accent-2);
+            transform: translateX(4px);
+        }
+        .saved-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background-size: cover;
+            background-position: center;
+        }
+        .saved-info {
+            flex: 1;
+        }
+        .saved-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .saved-meta {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        .saved-remove {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+        }
+        .saved-remove:hover { color: var(--accent); }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        /* Animations */
+        @keyframes cardIn {
+            from { opacity: 0; transform: scale(0.8) translateY(30px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .destination-card {
+            animation: cardIn 0.4s ease-out;
+        }
+        .swipe-left {
+            animation: swipeLeft 0.3s ease-out forwards;
+        }
+        .swipe-right {
+            animation: swipeRight 0.3s ease-out forwards;
+        }
+        @keyframes swipeLeft {
+            to { transform: translateX(-150%) rotate(-20deg); opacity: 0; }
+        }
+        @keyframes swipeRight {
+            to { transform: translateX(150%) rotate(20deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <header class="header">
+        <h1>Where should I go? ✈️</h1>
+        <p>Spontaneous travel picks based on your signals</p>
+    </header>
+
+    <div class="signals-bar">
+        <div class="signal good"><i class="ph ph-calendar-check"></i> Free this weekend</div>
+        <div class="signal good"><i class="ph ph-wallet"></i> Budget: Flexible</div>
+        <div class="signal hot"><i class="ph ph-fire"></i> Craving adventure</div>
+        <div class="signal warn"><i class="ph ph-sun"></i> Want warmth</div>
+    </div>
+
+    <div class="card-container">
+        <div class="card-stack" id="card-stack"></div>
+    </div>
+
+    <div class="actions">
+        <button class="action-btn btn-skip" onclick="skipCard()" title="Skip">
+            <i class="ph ph-x"></i>
+        </button>
+        <button class="action-btn btn-go" onclick="goCard()" title="Let's Go!">
+            <i class="ph ph-airplane-takeoff"></i>
+        </button>
+        <button class="action-btn btn-save" onclick="saveCard()" title="Save for later">
+            <i class="ph ph-bookmark-simple"></i>
+        </button>
+    </div>
+
+    <div class="spin-section">
+        <button class="spin-btn" onclick="shuffleDestinations()">
+            <i class="ph ph-shuffle"></i> Shuffle Destinations
+        </button>
+    </div>
+
+    <div class="saved-section">
+        <div class="saved-header">
+            <h3>Saved for Later</h3>
+            <span class="saved-count" id="saved-count">0 places</span>
+        </div>
+        <div class="saved-list" id="saved-list"></div>
+    </div>
+
+    <footer class="footer">
+        Powered by OpenClaw · Based on your patterns, calendar, and vibe
+    </footer>
+
+    <script>
+        const destinations = [
+            {
+                name: "Tokyo",
+                country: "Japan",
+                image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800",
+                badge: "trending",
+                reason: "Cherry blossom season starting. You've been researching AI labs - Tokyo has a buzzing tech scene. Plus, amazing food.",
+                flight: "$580",
+                weather: "58°F",
+                vibe: "🍜 Tech + Culture"
+            },
+            {
+                name: "Lisbon",
+                country: "Portugal",
+                image: "https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=800",
+                badge: "deal",
+                reason: "Cheap flights from SFO right now. Great nomad scene, amazing seafood, and it's 70°F. Perfect escape.",
+                flight: "$420",
+                weather: "68°F",
+                vibe: "☀️ Chill + Scenic"
+            },
+            {
+                name: "Austin",
+                country: "Texas, USA",
+                image: "https://images.unsplash.com/photo-1531218150217-54595bc2b934?w=800",
+                badge: "weekend",
+                reason: "Quick 3-hour flight. Huge tech/startup scene, live music, BBQ. Good for networking and fun.",
+                flight: "$180",
+                weather: "75°F",
+                vibe: "🎸 Music + Tech"
+            },
+            {
+                name: "Mexico City",
+                country: "Mexico",
+                image: "https://images.unsplash.com/photo-1585464231875-d9ef1f5ad396?w=800",
+                badge: "spontaneous",
+                reason: "3.5 hour flight, no visa needed. Incredible food scene, great museums, and your dollar goes far.",
+                flight: "$250",
+                weather: "72°F",
+                vibe: "🌮 Culture + Food"
+            },
+            {
+                name: "Vancouver",
+                country: "Canada",
+                image: "https://images.unsplash.com/photo-1559511260-66a68e7e5285?w=800",
+                badge: "weekend",
+                reason: "2 hour flight, beautiful nature. Mountains + city vibes. Good reset without major travel.",
+                flight: "$150",
+                weather: "52°F",
+                vibe: "🏔️ Nature + City"
+            },
+            {
+                name: "Miami",
+                country: "Florida, USA",
+                image: "https://images.unsplash.com/photo-1506966953602-c20cc11f75e3?w=800",
+                badge: "hot",
+                reason: "You mentioned wanting warmth. Beach, nightlife, art deco vibes. Direct flights available.",
+                flight: "$220",
+                weather: "82°F",
+                vibe: "🌴 Beach + Party"
+            },
+            {
+                name: "New York",
+                country: "New York, USA",
+                image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800",
+                badge: "networking",
+                reason: "You mentioned modeling interest. NYC is the hub. Plus endless restaurants, shows, and energy.",
+                flight: "$280",
+                weather: "45°F",
+                vibe: "🗽 Hustle + Culture"
+            },
+            {
+                name: "Barcelona",
+                country: "Spain",
+                image: "https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800",
+                badge: "deal",
+                reason: "Shoulder season deals. Gaudí architecture, beach, tapas, nightlife. Perfect mix of everything.",
+                flight: "$490",
+                weather: "62°F",
+                vibe: "🎨 Art + Beach"
+            }
+        ];
+
+        let currentIndex = 0;
+        let savedPlaces = [];
+
+        function renderCard() {
+            const stack = document.getElementById('card-stack');
+            if (currentIndex >= destinations.length) {
+                stack.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-dim);">
+                        <i class="ph ph-map-trifold" style="font-size: 64px; margin-bottom: 16px; display: block;"></i>
+                        <p style="font-size: 18px; margin-bottom: 20px;">You've seen all destinations!</p>
+                        <button class="spin-btn" onclick="resetCards()">
+                            <i class="ph ph-arrow-counter-clockwise"></i> Start Over
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const dest = destinations[currentIndex];
+            stack.innerHTML = `
+                <div class="destination-card" id="current-card">
+                    <div class="card-image" style="background-image: url('${dest.image}')">
+                        <span class="card-badge badge-${dest.badge}">${dest.badge}</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-destination">${dest.name}</div>
+                        <div class="card-country">${dest.country}</div>
+                        <div class="card-reason">${dest.reason}</div>
+                        <div class="card-stats">
+                            <div class="stat">
+                                <span class="stat-value">${dest.flight}</span>
+                                <span class="stat-label">Flight</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">${dest.weather}</span>
+                                <span class="stat-label">Weather</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">${dest.vibe}</span>
+                                <span class="stat-label">Vibe</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function skipCard() {
+            const card = document.getElementById('current-card');
+            if (card) {
+                card.classList.add('swipe-left');
+                setTimeout(() => {
+                    currentIndex++;
+                    renderCard();
+                }, 300);
+            }
+        }
+
+        function saveCard() {
+            const dest = destinations[currentIndex];
+            if (dest && !savedPlaces.find(p => p.name === dest.name)) {
+                savedPlaces.push(dest);
+                renderSaved();
+            }
+            const card = document.getElementById('current-card');
+            if (card) {
+                card.classList.add('swipe-right');
+                setTimeout(() => {
+                    currentIndex++;
+                    renderCard();
+                }, 300);
+            }
+        }
+
+        function goCard() {
+            const dest = destinations[currentIndex];
+            if (dest) {
+                // Open Google Flights search
+                const url = `https://www.google.com/travel/flights?q=flights+to+${encodeURIComponent(dest.name)}+from+SFO`;
+                window.open(url, '_blank');
+            }
+        }
+
+        function renderSaved() {
+            const list = document.getElementById('saved-list');
+            const count = document.getElementById('saved-count');
+            count.textContent = `${savedPlaces.length} place${savedPlaces.length !== 1 ? 's' : ''}`;
+            
+            if (savedPlaces.length === 0) {
+                list.innerHTML = '<p style="color: var(--text-dim); text-align: center; padding: 20px;">No places saved yet</p>';
+                return;
+            }
+
+            list.innerHTML = savedPlaces.map((place, i) => `
+                <div class="saved-item">
+                    <div class="saved-thumb" style="background-image: url('${place.image}')"></div>
+                    <div class="saved-info">
+                        <div class="saved-name">${place.name}</div>
+                        <div class="saved-meta">${place.country} · ${place.flight} · ${place.weather}</div>
+                    </div>
+                    <button class="saved-remove" onclick="removeSaved(${i})">
+                        <i class="ph ph-x"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function removeSaved(index) {
+            savedPlaces.splice(index, 1);
+            renderSaved();
+        }
+
+        function shuffleDestinations() {
+            for (let i = destinations.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [destinations[i], destinations[j]] = [destinations[j], destinations[i]];
+            }
+            currentIndex = 0;
+            renderCard();
+        }
+
+        function resetCards() {
+            currentIndex = 0;
+            renderCard();
+        }
+
+        // Initial render
+        renderCard();
+        renderSaved();
+    </script>
+</body>
+</html>

@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Today</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --card: #ffffff;
+            --border: #e5e5e5;
+            --text: #171717;
+            --text-dim: #737373;
+            --accent: #2563eb;
+            --success: #16a34a;
+            --warning: #ea580c;
+            --pink: #ec4899;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+            padding: 20px 0;
+        }
+        .greeting h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .greeting p {
+            font-size: 16px;
+            color: var(--text-dim);
+        }
+        .date-display {
+            text-align: right;
+        }
+        .date-display .day {
+            font-size: 14px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .date-display .date {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .date-display .time {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+        .grid-full { grid-column: span 3; }
+        .grid-2 { grid-column: span 2; }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .card-title i { font-size: 20px; }
+
+        /* Weather Card */
+        .weather {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .weather-icon {
+            font-size: 64px;
+            color: var(--warning);
+        }
+        .weather-temp {
+            font-size: 48px;
+            font-weight: 700;
+        }
+        .weather-desc {
+            font-size: 16px;
+            color: var(--text-dim);
+        }
+        .weather-details {
+            display: flex;
+            gap: 24px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+        .weather-detail {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        .quick-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 20px 12px;
+            background: var(--bg);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .quick-action:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        .quick-action i {
+            font-size: 28px;
+            color: var(--accent);
+        }
+        .quick-action span {
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        /* Schedule */
+        .schedule-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .schedule-item:last-child { border-bottom: none; }
+        .schedule-time {
+            min-width: 70px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .schedule-content {
+            flex: 1;
+        }
+        .schedule-title {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .schedule-meta {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        .schedule-now {
+            background: linear-gradient(135deg, #dbeafe, #ede9fe);
+            margin: -16px -24px;
+            padding: 16px 24px;
+            border-radius: 12px;
+        }
+
+        /* Agent Activity */
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+        .activity-dot.cron { background: var(--accent); }
+        .activity-dot.task { background: var(--success); }
+        .activity-dot.alert { background: var(--warning); }
+        .activity-text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .activity-time {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        /* Decision Cards */
+        .decisions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .decision-card {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .decision-card:hover {
+            border-color: var(--accent);
+            transform: scale(1.02);
+        }
+        .decision-card i {
+            font-size: 32px;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .decision-card.food i { color: #f97316; }
+        .decision-card.focus i { color: #8b5cf6; }
+        .decision-card.break i { color: #06b6d4; }
+        .decision-question {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .decision-answer {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .decision-reason {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 6px;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        .stat {
+            text-align: center;
+            padding: 16px;
+            background: var(--bg);
+            border-radius: 12px;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .stat-value.success { color: var(--success); }
+        .stat-value.accent { color: var(--accent); }
+        .stat-value.warning { color: var(--warning); }
+        .stat-value.pink { color: var(--pink); }
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Refresh Button */
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .refresh-btn:hover {
+            background: var(--bg);
+            color: var(--accent);
+        }
+
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: 1fr; }
+            .grid-full, .grid-2 { grid-column: span 1; }
+            .quick-actions { grid-template-columns: repeat(2, 1fr); }
+            .decisions { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="greeting">
+                <h1 id="greeting">Good morning, Ethan</h1>
+                <p id="tagline">Here's your day at a glance</p>
+            </div>
+            <div class="date-display">
+                <div class="day" id="day-name">Thursday</div>
+                <div class="date" id="date-str">February 20</div>
+                <div class="time" id="time-str">8:45 AM PT</div>
+            </div>
+        </header>
+
+        <div class="grid">
+            <!-- Weather -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="ph ph-cloud-sun"></i> Weather</span>
+                    <span style="font-size: 13px; color: var(--text-dim);">San Francisco</span>
+                </div>
+                <div class="weather">
+                    <i class="ph-fill ph-sun weather-icon"></i>
+                    <div>
+                        <div class="weather-temp">62°</div>
+                        <div class="weather-desc">Partly Cloudy</div>
+                    </div>
+                </div>
+                <div class="weather-details">
+                    <div class="weather-detail"><i class="ph ph-thermometer"></i> High 68° / Low 54°</div>
+                    <div class="weather-detail"><i class="ph ph-drop"></i> 10% rain</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card grid-2">
+                <div class="card-header">
+                    <span class="card-title"><i class="ph ph-lightning"></i> Quick Actions</span>
+                </div>
+                <div class="quick-actions">
+                    <div class="quick-action" onclick="askAgent('Check my email for anything urgent')">
+                        <i class="ph ph-envelope"></i>
+                        <span>Check Email</span>
+                    </div>
+                    <div class="quick-action" onclick="askAgent('What meetings do I have today?')">
+                        <i class="ph ph-calendar"></i>
+                        <span>Today's Schedule</span>
+                    </div>
+                    <div class="quick-action" onclick="askAgent('Give me a quick news briefing on AI')">
+                        <i class="ph ph-newspaper"></i>
+                        <span>AI News</span>
+                    </div>
+                    <div class="quick-action" onclick="askAgent('What tasks should I focus on today?')">
+                        <i class="ph ph-target"></i>
+                        <span>Today's Focus</span>
+                    </div>
+                    <div class="quick-action" onclick="askAgent('Search for interesting AI jobs posted today')">
+                        <i class="ph ph-briefcase"></i>
+                        <span>Job Search</span>
+                    </div>
+                    <div class="quick-action" onclick="askAgent('What is trending on crypto twitter right now?')">
+                        <i class="ph ph-trend-up"></i>
+                        <span>Crypto Trends</span>
+                    </div>
+                    <div class="quick-action" onclick="askAgent('Draft a tweet about something interesting')">
+                        <i class="ph ph-twitter-logo"></i>
+                        <span>Draft Tweet</span>
+                    </div>
+                    <div class="quick-action" onclick="askAgent('What should I learn today?')">
+                        <i class="ph ph-brain"></i>
+                        <span>Learn Something</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Schedule -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="ph ph-calendar-check"></i> Today's Schedule</span>
+                    <button class="refresh-btn" onclick="refreshSchedule()"><i class="ph ph-arrows-clockwise"></i></button>
+                </div>
+                <div id="schedule">
+                    <div class="schedule-item">
+                        <div class="schedule-time">9:00 AM</div>
+                        <div class="schedule-content">
+                            <div class="schedule-title">Morning Briefing</div>
+                            <div class="schedule-meta">From Esobot</div>
+                        </div>
+                    </div>
+                    <div class="schedule-item schedule-now">
+                        <div class="schedule-time">Now</div>
+                        <div class="schedule-content">
+                            <div class="schedule-title">Open time block</div>
+                            <div class="schedule-meta">Deep work window</div>
+                        </div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="schedule-time">4:00 PM</div>
+                        <div class="schedule-content">
+                            <div class="schedule-title">Wordware Hack Night</div>
+                            <div class="schedule-meta">1185 Old Mason St</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Decisions -->
+            <div class="card grid-2">
+                <div class="card-header">
+                    <span class="card-title"><i class="ph ph-magic-wand"></i> Agent Suggests</span>
+                    <button class="refresh-btn" onclick="refreshDecisions()"><i class="ph ph-shuffle"></i></button>
+                </div>
+                <div class="decisions">
+                    <div class="decision-card food" onclick="askAgent('Find me lunch options near Mission St under $15')">
+                        <i class="ph ph-bowl-food"></i>
+                        <div class="decision-question">What should I eat?</div>
+                        <div class="decision-answer">Souvla</div>
+                        <div class="decision-reason">Greek, 10 min walk, you liked it last time</div>
+                    </div>
+                    <div class="decision-card focus" onclick="askAgent('Help me focus on my most important task')">
+                        <i class="ph ph-crosshair"></i>
+                        <div class="decision-question">What should I work on?</div>
+                        <div class="decision-answer">Hackathon Prep</div>
+                        <div class="decision-reason">Event starts at 4pm, good to prep</div>
+                    </div>
+                    <div class="decision-card break" onclick="askAgent('Suggest a 15 minute break activity')">
+                        <i class="ph ph-coffee"></i>
+                        <div class="decision-question">Need a break?</div>
+                        <div class="decision-answer">Walk to Blue Bottle</div>
+                        <div class="decision-reason">15 min, nice out, clear your head</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="ph ph-robot"></i> Agent Activity</span>
+                    <span style="font-size: 12px; color: var(--success);">● Live</span>
+                </div>
+                <div id="activity">
+                    <div class="activity-item">
+                        <div class="activity-dot cron"></div>
+                        <div>
+                            <div class="activity-text">Morning briefing sent to Telegram</div>
+                            <div class="activity-time">9:02 AM</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-dot task"></div>
+                        <div>
+                            <div class="activity-text">Synced memory files and embeddings</div>
+                            <div class="activity-time">4:00 AM</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-dot cron"></div>
+                        <div>
+                            <div class="activity-text">Nightly build: Fixed calendar token docs</div>
+                            <div class="activity-time">3:15 AM</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-dot alert"></div>
+                        <div>
+                            <div class="activity-text">Gmail API token needs re-auth</div>
+                            <div class="activity-time">Yesterday</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Stats -->
+            <div class="card grid-full">
+                <div class="card-header">
+                    <span class="card-title"><i class="ph ph-chart-bar"></i> Today's Stats</span>
+                </div>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value success">3</div>
+                        <div class="stat-label">Tasks Completed</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value accent">12</div>
+                        <div class="stat-label">Agent Actions</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value warning">$4.20</div>
+                        <div class="stat-label">API Spend</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value pink">86%</div>
+                        <div class="stat-label">Context Used</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GATEWAY = 'http://100.117.197.128:18789';
+
+        function updateDateTime() {
+            const now = new Date();
+            const hour = now.getHours();
+            
+            let greeting = 'Good morning';
+            if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+            if (hour >= 17) greeting = 'Good evening';
+            
+            document.getElementById('greeting').textContent = `${greeting}, Ethan`;
+            document.getElementById('day-name').textContent = now.toLocaleDateString('en-US', { weekday: 'long' });
+            document.getElementById('date-str').textContent = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+            document.getElementById('time-str').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ' PT';
+        }
+
+        function askAgent(message) {
+            // Visual feedback
+            const btn = event.target.closest('.quick-action, .decision-card');
+            if (btn) {
+                btn.style.background = '#dbeafe';
+                setTimeout(() => btn.style.background = '', 500);
+            }
+            
+            // Send to OpenClaw
+            fetch(`${GATEWAY}/api/sessions/main/message`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            }).then(() => {
+                // Show confirmation
+                alert('Sent to agent: ' + message);
+            }).catch(err => {
+                console.error('Failed:', err);
+                alert('Message: ' + message + '\n\n(Agent will respond in Telegram)');
+            });
+        }
+
+        function refreshSchedule() {
+            askAgent('What is on my calendar today?');
+        }
+
+        function refreshDecisions() {
+            const foods = ['Souvla', 'Tartine', 'Dumpling Time', 'Nopalito', 'Kin Khao'];
+            const reasons = ['Greek, quick', 'Bakery, treat yourself', 'Dumplings, comfort food', 'Mexican, fresh', 'Thai, spicy'];
+            const idx = Math.floor(Math.random() * foods.length);
+            document.querySelector('.decision-card.food .decision-answer').textContent = foods[idx];
+            document.querySelector('.decision-card.food .decision-reason').textContent = reasons[idx];
+        }
+
+        // Update time every minute
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+    </script>
+</body>
+</html>
